@@ -1,9 +1,11 @@
 import {
 	Flex,
+	Box, // Keep Box inside HStack if needed, or adjust HStack styling
 	FormControl,
 	FormLabel,
 	Input,
 	InputGroup,
+	HStack,
 	InputRightElement,
 	Stack,
 	Button,
@@ -17,6 +19,7 @@ import {
 	CardBody,
 	CardFooter,
 	useColorMode, // Import useColorMode
+	IconButton, // Import IconButton for password toggle
 } from "@chakra-ui/react";
 import { useState } from "react";
 import { ViewIcon, ViewOffIcon } from "@chakra-ui/icons";
@@ -25,23 +28,24 @@ import authScreenAtom from "../atoms/authAtom";
 import useShowToast from "../hooks/useShowToast";
 import userAtom from "../atoms/userAtom";
 
-export default function LoginCard() {
+export default function SignupCard() {
 	const [showPassword, setShowPassword] = useState(false);
 	const setAuthScreen = useSetRecoilState(authScreenAtom);
-	const setUser = useSetRecoilState(userAtom);
-	const [loading, setLoading] = useState(false);
-	const { colorMode } = useColorMode(); // Get color mode
-
 	const [inputs, setInputs] = useState({
+		name: "",
 		username: "",
+		email: "",
 		password: "",
 	});
+	const [loading, setLoading] = useState(false); // Added loading state
+	const { colorMode } = useColorMode(); // Get color mode
 	const showToast = useShowToast();
+	const setUser = useSetRecoilState(userAtom);
 
-	const handleLogin = async () => {
-		setLoading(true);
+	const handleSignup = async () => {
+		setLoading(true); // Set loading true
 		try {
-			const res = await fetch("/api/users/login", {
+			const res = await fetch("/api/users/signup", {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
@@ -49,100 +53,140 @@ export default function LoginCard() {
 				body: JSON.stringify(inputs),
 			});
 			const data = await res.json();
+
 			if (data.error) {
 				showToast("Error", data.error, "error");
 				return;
 			}
+
 			localStorage.setItem("user-threads", JSON.stringify(data));
 			setUser(data);
 		} catch (error) {
-			showToast("Error", error, "error");
+			showToast("Error", error?.message || "An error occurred", "error"); // More specific error
 		} finally {
-			setLoading(false);
+			setLoading(false); // Set loading false
 		}
 	};
 
+	// Define colors based on mode for consistency
+	const focusBorderColor = useColorModeValue("gray.300", "gray.600");
+	const logoSrc = colorMode === "dark" ? "/light-logo.svg" : "/dark-logo.svg";
+
 	return (
-		// Use Flex to center the card vertically and horizontally
-		<Flex align={"center"} justify={"center"} minH={"calc(100vh - 100px)"}> 
+		<Flex align={"center"} justify={"center"} minH={"calc(100vh - 100px)"}>
 			<Card
-				w={{ base: "full", sm: "400px" }}
-				variant="outline" // Add a subtle outline
-				p={4} // Add padding to the Card itself
-				borderRadius="lg" // Add some border radius
+				// Slightly wider for signup form compared to login
+				w={{ base: "full", sm: "450px" }} 
+				variant="outline"
+				p={4} // Padding for the card
+				borderRadius="lg" // Match Login Card
 			>
 				<CardHeader align="center">
-					{/* Display Logo based on color mode */}
 					<Image
-						boxSize="40px" // Adjust size as needed
-						src={colorMode === "dark" ? "/light-logo.svg" : "/dark-logo.svg"}
+						boxSize="40px"
+						src={logoSrc}
 						alt="Threads Logo"
-						mb={4} // Margin bottom for spacing
+						mb={4}
 					/>
 					<Heading fontSize={"2xl"} textAlign={"center"}>
-						Login
+						Sign Up
 					</Heading>
-					{/* Optional: Add a subtitle */}
 					<Text fontSize="sm" color={useColorModeValue("gray.600", "gray.400")} mt={1}>
-						Welcome back! Sign in to continue.
+						Create your Threads account.
 					</Text>
 				</CardHeader>
 
 				<CardBody>
-					<Stack spacing={4}> {/* Adjust spacing between form elements */}
-						<FormControl isRequired>
-							<FormLabel fontSize="sm">Username</FormLabel>
+					{/* Increased spacing for form elements */}
+					<Stack spacing={4}> 
+						<HStack spacing={3}> {/* Adjust spacing in HStack if needed */}
+							<Box flex={1}> {/* Use Flexbox for equal width */}
+								<FormControl isRequired id="full-name">
+									<FormLabel fontSize="sm">Full name</FormLabel>
+									<Input
+										type="text"
+										onChange={(e) => setInputs({ ...inputs, name: e.target.value })}
+										value={inputs.name}
+										variant="filled"
+										focusBorderColor={focusBorderColor}
+										_placeholder={{ color: useColorModeValue("gray.500", "gray.500") }}
+									/>
+								</FormControl>
+							</Box>
+							<Box flex={1}> {/* Use Flexbox for equal width */}
+								<FormControl isRequired id="username-signup">
+									<FormLabel fontSize="sm">Username</FormLabel>
+									<Input
+										type="text"
+										onChange={(e) => setInputs({ ...inputs, username: e.target.value })}
+										value={inputs.username}
+										variant="filled"
+										focusBorderColor={focusBorderColor}
+										_placeholder={{ color: useColorModeValue("gray.500", "gray.500") }}
+									/>
+								</FormControl>
+							</Box>
+						</HStack>
+						<FormControl isRequired id="email-signup">
+							<FormLabel fontSize="sm">Email address</FormLabel>
 							<Input
-								type="text"
-								value={inputs.username}
-								onChange={(e) => setInputs((inputs) => ({ ...inputs, username: e.target.value }))}
-								variant="filled" // Use filled variant for inputs
-								focusBorderColor={useColorModeValue("gray.300", "gray.600")} // Subtle focus color
+								type="email"
+								onChange={(e) => setInputs({ ...inputs, email: e.target.value })}
+								value={inputs.email}
+								variant="filled"
+								focusBorderColor={focusBorderColor}
 								_placeholder={{ color: useColorModeValue("gray.500", "gray.500") }}
 							/>
 						</FormControl>
-						<FormControl isRequired>
+						<FormControl isRequired id="password-signup">
 							<FormLabel fontSize="sm">Password</FormLabel>
 							<InputGroup>
 								<Input
 									type={showPassword ? "text" : "password"}
+									onChange={(e) => setInputs({ ...inputs, password: e.target.value })}
 									value={inputs.password}
-									onChange={(e) => setInputs((inputs) => ({ ...inputs, password: e.target.value }))}
-									variant="filled" // Use filled variant
-									focusBorderColor={useColorModeValue("gray.300", "gray.600")} // Subtle focus color
+									variant="filled"
+									focusBorderColor={focusBorderColor}
 									_placeholder={{ color: useColorModeValue("gray.500", "gray.500") }}
 								/>
 								<InputRightElement h={"full"}>
-									<Button
+									{/* Changed to IconButton like in LoginCard */}
+									<IconButton
+										size="sm"
 										variant={"ghost"}
 										onClick={() => setShowPassword((showPassword) => !showPassword)}
-										aria-label={showPassword ? "Hide password" : "Show password"} // Accessibility
-									>
-										{showPassword ? <ViewIcon /> : <ViewOffIcon />}
-									</Button>
+										aria-label={showPassword ? "Hide password" : "Show password"}
+										icon={showPassword ? <ViewIcon /> : <ViewOffIcon />}
+										color={useColorModeValue("gray.600", "gray.400")}
+									/>
 								</InputRightElement>
 							</InputGroup>
 						</FormControl>
-						<Stack spacing={6} pt={2}> {/* Add slight top padding before button */}
+						<Stack spacing={6} pt={2}>
 							<Button
-								loadingText="Logging in..."
-								size="lg" // Make button large
-								colorScheme="blue" // Use a standard color scheme
-								onClick={handleLogin}
-								isLoading={loading}
+								loadingText="Submitting..."
+								size="lg"
+								colorScheme="blue" // Match Login Button
+								onClick={handleSignup}
+								isLoading={loading} // Use loading state
+								w="full" // Make button full width like Login
 							>
-								Login
+								Sign up
 							</Button>
 						</Stack>
 					</Stack>
 				</CardBody>
 
-				<CardFooter pt={0}> {/* Reduce top padding for footer */}
-					{/* Ensure footer text is centered */}
-					<Text align={"center"} fontSize="sm" w="full"> 
-						Don&apos;t have an account?{" "}
-						<Link color={"blue.400"} onClick={() => setAuthScreen("signup")} fontWeight="medium"> {/* Make link slightly bolder */}
-							Sign up
+				<CardFooter pt={0}>
+					<Text align={"center"} fontSize="sm" w="full">
+						Already a user?{" "}
+						<Link 
+							color={"blue.400"} 
+							onClick={() => setAuthScreen("login")}
+							fontWeight="medium" // Match Login Link
+							_hover={{ textDecoration: 'underline' }} // Match Login Link
+						>
+							Login
 						</Link>
 					</Text>
 				</CardFooter>
